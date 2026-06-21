@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Forgiveness Wheel</title>
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(180deg,#ffeaf4,#eef7ff);display:flex;justify-content:center;align-items:center;min-height:100vh}
+.wrap{text-align:center;padding:16px}
+canvas{touch-action:none;background:#fff;border-radius:50%;box-shadow:0 6px 18px rgba(0,0,0,.15)}
+#msg{margin-top:16px;font-size:1.2rem;font-weight:bold}
+.small{color:#666}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h2>🎀 Spin to Decide 🎀</h2>
+<canvas id="wheel" width="340" height="340"></canvas>
+<div class="small">Swipe around the wheel with your finger. Faster swipe = faster spin.</div>
+<div id="msg"></div>
+</div>
+<script>
+const opts=[
+"😇 Forgive me instantly","😂 One last chance","🙈 Ignore 5 mins",
+"💬 Send one emoji","🍫 Demand a treat","🤝 Start over",
+"😤 Roast me","❤️ Smile & move on"
+];
+const c=document.getElementById("wheel"),ctx=c.getContext("2d");
+let angle=0,vel=0,drag=false,lastA=0,lastT=0,spinning=false;
+function draw(){
+ const r=170,n=opts.length;
+ ctx.clearRect(0,0,340,340);
+ for(let i=0;i<n;i++){
+  ctx.beginPath();ctx.moveTo(r,r);
+  ctx.arc(r,r,r,i*2*Math.PI/n+angle,(i+1)*2*Math.PI/n+angle);
+  ctx.closePath();
+  ctx.fillStyle=i%2?"#ffd6e7":"#d9efff";ctx.fill();
+  ctx.save();ctx.translate(r,r);
+  ctx.rotate((i+.5)*2*Math.PI/n+angle);
+  ctx.textAlign="right";ctx.font="14px Arial";
+  ctx.fillStyle="#333";ctx.fillText(opts[i],150,5);ctx.restore();
+ }
+ ctx.fillStyle="#ff5a8a";
+ ctx.beginPath();ctx.moveTo(r,5);ctx.lineTo(r-12,30);ctx.lineTo(r+12,30);ctx.fill();
+}
+draw();
+function pos(e){
+ const rect=c.getBoundingClientRect();
+ const t=e.touches?e.touches[0]:e;
+ const x=t.clientX-rect.left-170,y=t.clientY-rect.top-170;
+ return Math.atan2(y,x);
+}
+c.addEventListener("pointerdown",e=>{drag=true;lastA=pos(e);lastT=performance.now();});
+window.addEventListener("pointermove",e=>{
+ if(!drag)return;
+ let a=pos(e),t=performance.now(),da=a-lastA;
+ angle+=da; vel=da/((t-lastT)/1000);
+ lastA=a;lastT=t; draw();
+});
+window.addEventListener("pointerup",()=>{
+ drag=false;if(spinning)return;spinning=true;
+ const audio=new (window.AudioContext||window.webkitAudioContext)();
+ const o=audio.createOscillator(),g=audio.createGain();
+ o.connect(g);g.connect(audio.destination);o.start();o.frequency.value=600;g.gain.value=.02;
+ setTimeout(()=>o.stop(),120);
+ function step(){
+   angle+=vel*0.016; vel*=0.985; draw();
+   if(Math.abs(vel)>0.05){requestAnimationFrame(step);}
+   else{
+    spinning=false;
+    const seg=2*Math.PI/opts.length;
+    let idx=((Math.floor((((-Math.PI/2-angle)%(2*Math.PI)+2*Math.PI)%(2*Math.PI))/seg)))%opts.length;
+    const res=opts[idx];
+    if(typeof confetti==="function"){confetti();}
+    document.getElementById("msg").innerHTML="🥺 <b>You have officially forgiven me!</b><br>"+res+"<br>❤️❤️❤️";
+    burstHearts();
+   }
+ }
+ requestAnimationFrame(step);
+});
+function burstHearts(){
+ for(let i=0;i<25;i++){
+  let d=document.createElement("div");
+  d.textContent="❤️";d.style.position="fixed";
+  d.style.left=(Math.random()*100)+"vw";d.style.top="100vh";
+  d.style.transition="transform 2s linear,opacity 2s";
+  document.body.appendChild(d);
+  requestAnimationFrame(()=>{d.style.transform=`translateY(-120vh)`;d.style.opacity=0;});
+  setTimeout(()=>d.remove(),2100);
+ }
+}
+</script>
+</body></html>
